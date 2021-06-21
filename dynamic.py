@@ -45,7 +45,7 @@ hV=1
 hx=100
 z = np.inf*np.ones((int((C-c)/hV) + 1,m)) 
 x = np.zeros((int((C-c)/hV) + 1,m))
-Fahrplan = np.zeros(m)
+policy = np.zeros(m)
 
 tic = time()
 
@@ -100,31 +100,27 @@ d = int((Vfinal-c)/hV + np.argmin(final)*hV)
 
 V[m-1] = d
 
-Fahrplan[m-1] = x[int((d-c)/hV)][m-1]
+policy[m-1] = x[int((d-c)/hV)][m-1]
 for i in range(m-2,-1,-1):
     d = round_down(inv_energy_loss(beta, d - eta*x[int((d-c)/hV)][i+1] + Z[i+1]), hV)
     if d < c or d > C:
-        print("Füllstand nicht erreichbar!")
+        print("fill level not feasible :(")
         break
-    Fahrplan[i] = x[int((d-c)/hV)][i]
+    policy[i] = x[int((d-c)/hV)][i]
     V[i] = d
-
-print('Works good so far :)')
-
-
-
+    
 toc = time()
 
 print("Time elapsed: ", toc - tic)
 
 
-V[0] = np.ceil(energy_loss(beta, Vinit)) + Fahrplan[0] - Z[0]
+V[0] = np.ceil(energy_loss(beta, Vinit)) + policy[0] - Z[0]
 for i in range(1,m):
-    V[i] = np.ceil(energy_loss(beta, V[i-1])) + Fahrplan[i] - Z[i]
+    V[i] = np.ceil(energy_loss(beta, V[i-1])) + policy[i] - Z[i]
 print(V)
-print(Fahrplan@p/100)
+print(policy@p/100)
 
-plt.step(np.arange(m+1), np.concatenate(([0], Fahrplan)), where='post', color='r', linestyle='--', linewidth=2)
+plt.step(np.arange(m+1), np.concatenate(([0], policy)), where='post', color='r', linestyle='--', linewidth=2)
 plt.step(np.arange(m+1), np.concatenate(([Vinit], V)), where='post', color='k', linestyle=':', linewidth=2)
 
 plt.plot([0, 24], [l, l], color='r', linestyle='--', linewidth=1)
@@ -133,7 +129,7 @@ plt.plot([0, 24], [c, c], color='k', linestyle=':', linewidth=1)
 plt.plot([0, 24], [C, C], color='k', linestyle=':', linewidth=1)
 
 plt.xticks([0,2,4,6,8,10,12,14,16,18,20,22,24])
-legend = ['Leistung','Speicherfüllstand']
+legend = ['energy','fill level']
 plt.legend(legend, loc=1)
 plt.show()
 
