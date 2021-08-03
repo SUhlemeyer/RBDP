@@ -26,19 +26,21 @@ def round_up(x,h):
 
 
 start = 0
-end = 1
+end = 2
+t = 24
 
 df = pd.read_excel('Day_Ahead_Auktion_2018.xlsx', sheet_name=1, engine="openpyxl")
-m = (end-start)*24
+m = (end-start)*t
 p = np.zeros(m)
 for i in range(start,end):
     for j in range(1,25):
-        p[i-start+j-1] = df['Unnamed: {}'.format(j)][i]
+        p[t*(i-start)+j-1] = df['Unnamed: {}'.format(j)][i]
+
 
 Z = 200*np.ones(m)
 Vinit = 100
 Vfinal = 100
-eta = 0.8
+eta = 1
 V = np.zeros(m)
 l = 0
 u = 1000
@@ -48,9 +50,10 @@ hV=1
 hx=100
 
 error = sum((1-beta)**(m-i) for i in range(1, m+1))*hV
-
+print(m, error)
 c = 0
-C = round_down(500 - error, hV)
+cmax = 500
+C = round_down(cmax - error, hV)
 
 if C < c:
     print('The step width hV is too big. The upper bound on the error is larger than the storage. Hence, feasibility of the rounded solution cannot be guaranteed. Try again with a finer discretization.')
@@ -120,7 +123,7 @@ while not feasible:
     
 toc = time()
 
-print("Time elapsed: ", toc - tic)
+print("Time elapsed: ", toc - tic, "seconds.")
 
 V_real = np.zeros(m)
 V_real[0] = energy_loss(beta, Vinit) + eta*policy[0] - Z[0]
@@ -129,18 +132,18 @@ for i in range(1,m):
     V_real[i] = energy_loss(beta, V_real[i-1]) + eta*policy[i] - Z[i]
 #print(policy)
 #print(V)
-print(np.min(V_real), np.max(V_real))
-print(policy@p/100)
+print("Feasibility check: Min. real fill level ", np.min(V_real), " >= {} and max. real fill level ".format(c), np.max(V_real), " <= {}.".format(cmax))
+print("Costs: {:.2f}€".format(policy@p/100))
 
 plt.step(np.arange(m+1), np.concatenate(([0], policy)), where='post', color='r', linestyle='--', linewidth=2)
 plt.step(np.arange(m+1), np.concatenate(([Vinit], V)), where='post', color='k', linestyle=':', linewidth=2)
 
-plt.plot([0, 24], [l, l], color='r', linestyle='--', linewidth=1)
-plt.plot([0, 24], [u, u], color='r', linestyle='--', linewidth=1)
-plt.plot([0, 24], [c, c], color='k', linestyle=':', linewidth=1)
-plt.plot([0, 24], [C, C], color='k', linestyle=':', linewidth=1)
+plt.plot([0, m], [l, l], color='r', linestyle='--', linewidth=1)
+plt.plot([0, m], [u, u], color='r', linestyle='--', linewidth=1)
+plt.plot([0, m], [c, c], color='k', linestyle=':', linewidth=1)
+plt.plot([0, m], [C, C], color='k', linestyle=':', linewidth=1)
 
-plt.xticks([0,2,4,6,8,10,12,14,16,18,20,22,24])
+plt.xticks(np.arange(0, m, 5))
 legend = ['energy','fill level']
 plt.legend(legend, loc=1)
 plt.show()
